@@ -31,7 +31,7 @@ scheduler = BackgroundScheduler()
 #  Core job runner
 # ══════════════════════════════════════════════════════════════
 
-def send_agent_prompt(job_id: str, agent: str, prompt: str, user_id: str) -> None:
+def send_agent_prompt(job_id: str, agent: str, prompt: str) -> None:
     """Called by APScheduler at the scheduled time."""
     if agent not in AGENTS:
         msg = f"Unknown agent '{agent}'. Known: {list(AGENTS.keys())}"
@@ -41,7 +41,7 @@ def send_agent_prompt(job_id: str, agent: str, prompt: str, user_id: str) -> Non
     try:
         response = requests.post(
             AGENTS[agent],
-            json={"prompt": prompt, "user_id": user_id},
+            json={"prompt": prompt},
             headers={"Content-Type": "application/json"},
             timeout=1000,
         )
@@ -69,10 +69,9 @@ def load_jobs_into_scheduler() -> None:
             j["trigger"],
             id=j["job_id"],
             kwargs={
-                "job_id":  j["job_id"],
-                "agent":   j["agent"],
-                "prompt":  j["prompt"],
-                "user_id": j["user_id"],
+                "job_id": j["job_id"],
+                "agent":  j["agent"],
+                "prompt": j["prompt"],
             },
             max_instances=1,
             coalesce=True,
@@ -88,10 +87,10 @@ def load_jobs_into_scheduler() -> None:
 # ══════════════════════════════════════════════════════════════
 
 def add_or_update_task(
+    agent: str,
     prompt: str,
     trigger: str,
     trigger_args: Dict[str, Any],
-    user_id: str,
     *,
     job_id: Optional[str] = None,
     enabled: bool = True,
@@ -104,22 +103,20 @@ def add_or_update_task(
       interval → {"hours": 2}
       date     → {"run_date": "2026-03-10T09:00:00+00:00"}
     """
+    if agent not in AGENTS:
+        raise ValueError(f"Unknown agent '{agent}'. Known: {list(AGENTS.keys())}")
     if trigger not in {"cron", "interval", "date"}:
         raise ValueError("trigger must be one of: cron, interval, date")
     if not isinstance(trigger_args, dict):
         raise ValueError("trigger_args must be a dict")
-
-    if job_id is None:
-        job_id = f"{agent}_{uuid.uuid4().hex[:8]}"
 
     job_id = save_job(
         agent=agent,
         prompt=prompt,
         trigger=trigger,
         trigger_args=trigger_args,
-        user_id=user_id,
         enabled=enabled,
-        job_id=job_id,   # None = auto-generated
+        job_id=job_id,
     )
 
     if enabled and scheduler.running:
@@ -127,7 +124,7 @@ def add_or_update_task(
             send_agent_prompt,
             trigger,
             id=job_id,
-            kwargs={"job_id": job_id, "agent": agent, "prompt": prompt, "user_id": user_id},
+            kwargs={"job_id": job_id, "agent": agent, "prompt": prompt},
             max_instances=1,
             coalesce=True,
             misfire_grace_time=120,
@@ -156,7 +153,7 @@ def update_job_status(job_id: str, enabled: bool) -> bool:
                 send_agent_prompt,
                 job["trigger"],
                 id=job_id,
-                kwargs={"job_id": job_id, "prompt": job["prompt"], "user_id": job["user_id"]},
+                kwargs={"job_id": job_id, "agent": job["agent"], "prompt": job["prompt"]},
                 max_instances=1,
                 coalesce=True,
                 misfire_grace_time=120,
@@ -188,7 +185,7 @@ def delete_job_from_db(job_id: str) -> bool:
 #  handle_user_text — LINE command parser
 # ══════════════════════════════════════════════════════════════
 
-def handle_user_text(text: str, user_id: str) -> str:
+def handle_user_text(text: str) -> str:
     parts = text.strip().split(maxsplit=1)
     if not parts or not parts[0]:
         return "Please provide a command. Type 'help' for available commands."
@@ -203,23 +200,20 @@ def handle_user_text(text: str, user_id: str) -> str:
         response = """
 Available commands:
 
-1. schedule "<prompt>" <trigger_type> <trigger_args_json> [job_id=<id>]
-   Adds or updates a scheduled task.
-   - agent_name  : name of the agent (e.g. stock_agent) — currently only one agent supported
+1. schedule <agent_name> "<prompt>" <trigger_type> <trigger_args_json> [job_id=<id>]
+   - agent_name  : name of the agent (e.g. stock_agent)
    - prompt      : in double quotes
-   - trigger_type : cron | interval | date
-   - trigger_args : JSON string
+   - trigger_type: cron | interval | date
+   - trigger_args: JSON string
      cron     → {"day_of_week":"mon-fri","hour":9,"minute":0,"timezone":"Asia/Taipei"}
      interval → {"minutes": 15}
      date     → {"run_date": "2026-03-10T09:00:00+00:00"}
-   - job_id (optional): to update an existing job
+   - job_id (optional): provide to update an existing job
 
    Example:
    schedule stock_agent "Give me a market summary" cron {"day_of_week":"mon-fri","hour":9,"minute":0,"timezone":"Asia/Taipei"}
 
 2. list jobs
-   Lists all scheduled jobs with details and status.
-
 3. enable job <job_id>
 4. disable job <job_id>
 5. delete job <job_id>
@@ -230,7 +224,6 @@ Available commands:
     elif command == "schedule":
         try:
             args_str = args_str.replace("\u201c", '"').replace("\u201d", '"')
-            # Format: schedule <agent_name> "<prompt>" <trigger_type> <trigger_args_json>
             match = re.match(r'(\w+)\s+"([^"]*)"\s+(\w+)\s+(.*)', args_str.strip())
             if not match:
                 raise ValueError(
@@ -244,25 +237,23 @@ Available commands:
             trigger_type = match.group(3).lower()
             remaining    = match.group(4).strip()
 
-            # Optional job_id at the end
             job_id = None
             job_id_match = re.search(r'\s+job_id=([\w-]+)$', remaining)
             if job_id_match:
-                job_id   = job_id_match.group(1)
+                job_id    = job_id_match.group(1)
                 remaining = re.sub(r'\s+job_id=[\w-]+$', '', remaining).strip()
 
             trigger_args = json.loads(remaining)
-            new_job_id = add_or_update_task(
+            new_job_id   = add_or_update_task(
                 agent=agent_name,
                 prompt=prompt,
                 trigger=trigger_type,
                 trigger_args=trigger_args,
-                user_id=user_id,
                 job_id=job_id,
             )
 
             if scheduler.running:
-                response = f"Job '{new_job_id}' scheduled successfully. Scheduler reloaded."
+                response = f"Job '{new_job_id}' scheduled successfully."
             else:
                 response = f"Job '{new_job_id}' saved. Start the scheduler for it to take effect."
 
@@ -285,6 +276,7 @@ Available commands:
                     status = "enabled" if job.get("enabled", True) else "disabled"
                     last   = job.get("last_run_at", "never")
                     lines.append(f"\nID     : {job['job_id']}")
+                    lines.append(f"Agent  : {job['agent']}")
                     lines.append(f"Prompt : \"{job['prompt']}\"")
                     lines.append(f"Trigger: {job['trigger']} {json.dumps(job['trigger_args'])}")
                     lines.append(f"Status : {status}  |  Last run: {last}")
@@ -305,16 +297,13 @@ Available commands:
                 enabled = command == "enable"
                 if update_job_status(job_id, enabled):
                     action = "enabled" if enabled else "disabled"
-                    if scheduler.running:
-                        response = f"Job '{job_id}' {action}. Scheduler updated."
-                    else:
-                        response = f"Job '{job_id}' {action} in MongoDB."
+                    response = f"Job '{job_id}' {action}."
                 else:
                     response = f"Job '{job_id}' not found."
 
             elif command == "delete":
                 if delete_job_from_db(job_id):
-                    response = f"Job '{job_id}' deleted from MongoDB and scheduler."
+                    response = f"Job '{job_id}' deleted."
                 else:
                     response = f"Job '{job_id}' not found."
 
