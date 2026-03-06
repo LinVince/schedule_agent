@@ -11,7 +11,7 @@ from linebot.v3.messaging import (
 )
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 import threading
-from schedule import schedule_main
+from schedule import schedule_main, handle_user_text
 app = Flask(__name__)
 
 # ---- Replace with your real tokens ----
