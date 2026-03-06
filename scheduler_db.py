@@ -43,7 +43,7 @@ def _col():
 # ══════════════════════════════════════════════════════════════
 
 def save_job(agent: str, prompt: str, trigger: str, trigger_args: dict,
-             user_id: str, enabled: bool = True, job_id: str = None) -> str:
+             enabled: bool = True, job_id: str = None) -> str:
     """
     Insert or update a scheduled job.
     job_id is auto-generated if not provided.
@@ -56,8 +56,7 @@ def save_job(agent: str, prompt: str, trigger: str, trigger_args: dict,
     trigger_args : dict of trigger kwargs, e.g.
                      cron     → {'hour': 9, 'minute': 0, 'timezone': 'Asia/Taipei'}
                      interval → {'hours': 2}
-                     date     → {'run_date': '2026-03-10 09:00:00'}
-    user_id      : LINE user_id to push the result to
+                     date     → {'run_date': '2026-03-10 09:00:00'
     enabled      : whether the job is active
     job_id       : optional — auto-generated as '{agent}_{uuid}' if not provided
     """
@@ -70,7 +69,6 @@ def save_job(agent: str, prompt: str, trigger: str, trigger_args: dict,
         "prompt":       prompt,
         "trigger":      trigger,
         "trigger_args": trigger_args,
-        "user_id":      user_id,
         "enabled":      enabled,
         "created_at":   datetime.now(timezone.utc).isoformat(),
         "updated_at":   datetime.now(timezone.utc).isoformat(),
