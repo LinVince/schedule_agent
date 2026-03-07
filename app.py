@@ -11,7 +11,7 @@ from linebot.v3.messaging import (
 )
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 import threading
-from schedule import schedule_main, handle_user_text
+from schedule import start_scheduler, handle_user_text
 app = Flask(__name__)
 
 # ---- Replace with your real tokens ----
@@ -62,9 +62,5 @@ def run_flask():
     app.run(host="0.0.0.0", port=5000)
 
 if __name__ == "__main__":
-    scheduler_thread = threading.Thread(target=schedule_main, daemon=True)
-    scheduler_thread.start()
-
-    print("Scheduler thread started")
-
+    start_scheduler()
     run_flask()
