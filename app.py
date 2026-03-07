@@ -13,7 +13,7 @@ from linebot.v3.webhooks import MessageEvent, TextMessageContent
 import threading
 from schedule import start_scheduler, handle_user_text
 app = Flask(__name__)
-
+start_scheduler()
 # ---- Replace with your real tokens ----
 CHANNEL_ACCESS_TOKEN = "6swo61L6E6bF15Zjrxed0oLAmJ84ZVS6xkzSxVH1Npv0XBp9Ba8ZXwNt23eza+v1Zyfsm5ZykMRkCOY5kIKJq9raxzVQC+hlom7D1xp2Jgu7DbzfO9oj+a5DTRmi9xY21xUFVX70ss1zYRwe2wRVEgdB04t89/1O/w1cDnyilFU="
 CHANNEL_SECRET = "e2183fb006b144e393df0d11cc8c4c46"
@@ -62,5 +62,4 @@ def run_flask():
     app.run(host="0.0.0.0", port=5000)
 
 if __name__ == "__main__":
-    start_scheduler()
     run_flask()
