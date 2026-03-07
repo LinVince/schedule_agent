@@ -21,7 +21,8 @@ from scheduler_db import (
 # ══════════════════════════════════════════════════════════════
 
 AGENTS = {
-    "stock_agent": "https://stockagent-fsdkdgfyhhe6cfcp.francecentral-01.azurewebsites.net/prompt"
+    "stock_agent": "https://stockagent-fsdkdgfyhhe6cfcp.francecentral-01.azurewebsites.net/prompt",
+    "mentor_agent" : "https://mentoragent-eaftcvb3cjf6gzfr.francecentral-01.azurewebsites.net/prompt"
 }
 
 scheduler = BackgroundScheduler()
