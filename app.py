@@ -7,7 +7,8 @@ from linebot.v3.messaging import (
     ApiClient,
     MessagingApi,
     ReplyMessageRequest,
-    TextMessage
+    TextMessage,
+    PushMessageRequest
 )
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 import threading
@@ -30,6 +31,16 @@ line_bot_api = MessagingApi(api_client)
 
 # Webhook handler remains the same
 handler = WebhookHandler(CHANNEL_SECRET)
+
+@app.route("/", methods=["GET"])
+def home():
+    line_bot_api.push_message(
+    PushMessageRequest(
+        to="U192772f59a4321d51d8b084fde86748d",
+        messages=[TextMessage(text="I am awake...")]
+    )
+    )
+    return "OK", 200
 
 @app.route("/callback", methods=['POST'])
 def callback():
