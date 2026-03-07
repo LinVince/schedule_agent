@@ -320,6 +320,12 @@ Available commands:
 # ══════════════════════════════════════════════════════════════
 
 def schedule_main():
-    load_jobs_into_scheduler()
+    print("[Scheduler] Initializing...")
     scheduler.start()
-    print("[Scheduler] Started.")
+    print("[Scheduler] Running:", scheduler.running)
+
+    load_jobs_into_scheduler()
+
+    print("[Scheduler] Jobs currently loaded:")
+    for job in scheduler.get_jobs():
+        print(job)

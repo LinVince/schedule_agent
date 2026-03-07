@@ -62,11 +62,9 @@ def run_flask():
     app.run(host="0.0.0.0", port=5000)
 
 if __name__ == "__main__":
-    schedule_main()
-    # ---- start flask in thread ----
+    scheduler_thread = threading.Thread(target=schedule_main, daemon=True)
+    scheduler_thread.start()
 
-flask_thread = threading.Thread(target=run_flask)
-flask_thread.daemon = True
-flask_thread.start()
+    print("Scheduler thread started")
 
-print("Flask started")
+    run_flask()
