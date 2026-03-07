@@ -319,12 +319,19 @@ Available commands:
 #  Startup
 # ══════════════════════════════════════════════════════════════
 
-def schedule_main():
+_scheduler_started = False
+
+def start_scheduler():
+    global _scheduler_started
+    if _scheduler_started:
+        return
+
     print("[Scheduler] Initializing...")
     scheduler.start()
     print("[Scheduler] Running:", scheduler.running)
 
     load_jobs_into_scheduler()
+    _scheduler_started = True
 
     print("[Scheduler] Jobs currently loaded:")
     for job in scheduler.get_jobs():
