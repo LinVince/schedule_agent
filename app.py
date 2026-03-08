@@ -34,12 +34,6 @@ handler = WebhookHandler(CHANNEL_SECRET)
 
 @app.route("/", methods=["GET"])
 def home():
-    line_bot_api.push_message(
-    PushMessageRequest(
-        to="U192772f59a4321d51d8b084fde86748d",
-        messages=[TextMessage(text="I am awake...")]
-    )
-    )
     return "OK", 200
 
 @app.route("/callback", methods=['POST'])
