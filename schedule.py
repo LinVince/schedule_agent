@@ -30,7 +30,7 @@ scheduler = BackgroundScheduler()
 
 # ══════════════════════════════════════════════════════════════
 #  Core job runner
-# ══════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════
 
 def send_agent_prompt(job_id: str, agent: str, prompt: str) -> None:
     """Called by APScheduler at the scheduled time."""
@@ -39,19 +39,36 @@ def send_agent_prompt(job_id: str, agent: str, prompt: str) -> None:
         log_job_run(job_id, status="error", message=msg)
         print(f"[ERROR] {msg}")
         return
-    try:
-        response = requests.post(
-            AGENTS[agent],
-            json={"prompt": prompt},
-            headers={"Content-Type": "application/json"},
-            timeout=1000,
-        )
-        response.raise_for_status()
-        log_job_run(job_id, status="success", message=response.text[:500])
-        print(f"[OK] job_id={job_id}  agent={agent}  status={response.status_code}")
-    except Exception as e:
-        log_job_run(job_id, status="error", message=str(e))
-        print(f"[ERROR] job_id={job_id}  error={e}")
+    
+    max_attempts = 5
+    for attempt in range(max_attempts):
+        try:
+            response = requests.post(
+                AGENTS[agent],
+                json={"prompt": prompt},
+                headers={"Content-Type": "application/json"},
+                timeout=100,  # Short timeout for responsiveness
+            )
+            response.raise_for_status()
+            
+            if response.text:
+                log_job_run(job_id, status="success", message=response.text[:500])
+                print(f"[OK] job_id={job_id}  agent={agent}  status={response.status_code}")
+                return  # Exit on success
+            
+            print(f"[WARNING] job_id={job_id}  Received empty response.")
+        
+        except requests.exceptions.Timeout:
+            print(f"[WARNING] job_id={job_id}  Attempt {attempt+1} timed out.")
+        except Exception as e:
+            log_job_run(job_id, status="error", message=str(e))
+            print(f"[ERROR] job_id={job_id}  error={e}")
+
+        # Wait before retrying, with a simple increasing backoff
+        time.sleep(60)  # Back off: 1, 2, 4, 8, ... seconds
+
+    print(f"[ERROR] job_id={job_id}  Max attempts reached. Request failed.")
+
 
 
 # ══════════════════════════════════════════════════════════════
