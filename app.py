@@ -14,6 +14,7 @@ from linebot.v3.webhooks import MessageEvent, TextMessageContent
 import threading
 from schedule import start_scheduler, handle_user_text
 import logging
+import os
 
 app = Flask(__name__)
 logging.basicConfig(
