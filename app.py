@@ -54,7 +54,7 @@ def home():
 def callback():
     signature = request.headers.get('X-Line-Signature', '')
     body = request.get_data(as_text=True)
-
+    app.logger.info("Received webhook - signature: %s, body: %s", signature, body)
     print("Webhook received:", body)
 
     try:
@@ -69,6 +69,7 @@ def callback():
 def handle_message(event):
     response = handle_user_text(event.message.text)
     print(event.message.text)
+    app.logger.info("Handling message - user: %s, text: %s, response: %s", event.source.user_id, event.message.text, response)
     # Reply using v3 MessagingApi
     line_bot_api.reply_message(
         ReplyMessageRequest(
