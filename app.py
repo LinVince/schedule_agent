@@ -13,7 +13,15 @@ from linebot.v3.messaging import (
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 import threading
 from schedule import start_scheduler, handle_user_text
+import logging
+
 app = Flask(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    force=True,
+)
+
 start_scheduler()
 # ---- Replace with your real tokens ----
 CHANNEL_ACCESS_TOKEN = "6swo61L6E6bF15Zjrxed0oLAmJ84ZVS6xkzSxVH1Npv0XBp9Ba8ZXwNt23eza+v1Zyfsm5ZykMRkCOY5kIKJq9raxzVQC+hlom7D1xp2Jgu7DbzfO9oj+a5DTRmi9xY21xUFVX70ss1zYRwe2wRVEgdB04t89/1O/w1cDnyilFU="
@@ -34,8 +42,14 @@ handler = WebhookHandler(CHANNEL_SECRET)
 
 @app.route("/", methods=["GET"])
 def home():
-    print ("Standing by...")
-    return "OK", 200
+now = datetime.now(timezone.utc).isoformat()
+    instance = os.environ.get("WEBSITE_INSTANCE_ID", "local")
+    app.logger.info("AWAKE ping received at / | time=%s | instance=%s", now, instance)
+    return jsonify({
+        "status": "awake",
+        "time_utc": now,
+        "instance": instance
+    }), 200
 
 @app.route("/callback", methods=['POST'])
 def callback():
