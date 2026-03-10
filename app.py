@@ -64,7 +64,7 @@ def callback():
         abort(400)
 
     return 'OK'
-
+"""
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     response = handle_user_text(event.message.text)
@@ -77,6 +77,36 @@ def handle_message(event):
             messages=[TextMessage(text=response)]
         )
     )
+"""
+@handler.add(MessageEvent, message=TextMessageContent)
+def handle_message(event):
+    response = handle_user_text(event.message.text)
+
+    try:
+        app.logger.info("Trying reply_message")
+        line_bot_api.reply_message(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[TextMessage(text=response)]
+            )
+        )
+        app.logger.info("reply_message succeeded")
+
+    except Exception:
+        app.logger.exception("reply_message failed")
+
+        # fallback: push instead of reusing reply token
+        try:
+            app.logger.info("Trying push_message fallback")
+            line_bot_api.push_message(
+                PushMessageRequest(
+                    to=event.source.user_id,
+                    messages=[TextMessage(text=response)]
+                )
+            )
+            app.logger.info("push_message fallback succeeded")
+        except Exception:
+            app.logger.exception("push_message fallback failed")
 
 def run_flask():
     app.run(host="0.0.0.0", port=5000)
