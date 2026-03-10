@@ -34,6 +34,7 @@ handler = WebhookHandler(CHANNEL_SECRET)
 
 @app.route("/", methods=["GET"])
 def home():
+    print ("Standing by...")
     return "OK", 200
 
 @app.route("/callback", methods=['POST'])
