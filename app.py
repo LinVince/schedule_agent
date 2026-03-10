@@ -42,7 +42,7 @@ handler = WebhookHandler(CHANNEL_SECRET)
 
 @app.route("/", methods=["GET"])
 def home():
-now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     instance = os.environ.get("WEBSITE_INSTANCE_ID", "local")
     app.logger.info("AWAKE ping received at / | time=%s | instance=%s", now, instance)
     return jsonify({
