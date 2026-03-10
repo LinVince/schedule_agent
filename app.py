@@ -1,5 +1,5 @@
 # @title #Line
-from flask import Flask, request, abort
+from flask import Flask, request, abort, jsonify
 from linebot.v3.webhook import WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.v3.messaging import (
@@ -15,7 +15,6 @@ import threading
 from schedule import start_scheduler, handle_user_text
 import logging
 import os
-import jsonify
 
 app = Flask(__name__)
 logging.basicConfig(
