@@ -83,30 +83,30 @@ def handle_message(event):
 def handle_message(event):
     response = handle_user_text(event.message.text)
 
-    def do_reply():
-        return line_bot_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text=response)]
-            )
+    executor = ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(
+        line_bot_api.reply_message,
+        ReplyMessageRequest(
+            reply_token=event.reply_token,
+            messages=[TextMessage(text=response)]
         )
+    )
 
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(do_reply)
+    try:
+        app.logger.info("Trying reply_message with 60-second timeout")
+        future.result(timeout=60)
+        app.logger.info("reply_message succeeded")
+        return
 
-        try:
-            app.logger.info("Trying reply_message with 60-second timeout")
-            future.result(timeout=60)
-            app.logger.info("reply_message succeeded")
-            return
+    except FuturesTimeoutError:
+        app.logger.error("reply_message did not finish within 60 seconds; switching to push_message")
 
-        except FuturesTimeoutError:
-            app.logger.error("reply_message timed out after 60 seconds")
+    except Exception:
+        app.logger.exception("reply_message failed; switching to push_message")
 
-        except Exception:
-            app.logger.exception("reply_message failed before timeout")
+    finally:
+        executor.shutdown(wait=False)
 
-    # fallback: push instead of reusing reply token
     try:
         app.logger.info("Trying push_message fallback")
         line_bot_api.push_message(
@@ -118,7 +118,7 @@ def handle_message(event):
         app.logger.info("push_message fallback succeeded")
     except Exception:
         app.logger.exception("push_message fallback failed")
-
+        
 def run_flask():
     app.run(host="0.0.0.0", port=5000)
 
