@@ -85,7 +85,7 @@ def save_job(agent: str, prompt: str, trigger: str, trigger_args: dict,
 #  Fetch jobs
 # ══════════════════════════════════════════════════════════════
 
-def fetch_job(job_id: str) -> dict | None:
+def fetch_job(job_id):
     """Fetch a single job by job_id. Returns None if not found."""
     return _col().find_one({"job_id": job_id}, {"_id": 0})
 
